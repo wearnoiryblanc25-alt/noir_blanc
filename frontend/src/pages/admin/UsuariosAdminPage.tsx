@@ -325,7 +325,7 @@ export const UsuariosAdminPage = () => {
               <div>
                 <h2>Accesos activos</h2>
                 <p className="admin-form-caption">
-                  Listado de usuarios disponibles para entrar al panel.
+                  Listado de usuarios validos
                 </p>
               </div>
               <span className="small-label">
