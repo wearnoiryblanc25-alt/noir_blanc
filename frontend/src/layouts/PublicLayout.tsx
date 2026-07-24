@@ -152,7 +152,7 @@ export const PublicLayout = () => {
           <span className="brand-subtitle">Collection</span>
           <div className="brand-socials" aria-label="Redes sociales">
             <a
-              className="brand-social-link"
+              className="brand-social-link brand-social-link--whatsapp"
               href="https://wa.me/message/USYOWGBVWLSAH1"
               rel="noreferrer"
               target="_blank"
@@ -163,7 +163,7 @@ export const PublicLayout = () => {
               <span>WhatsApp</span>
             </a>
             <a
-              className="brand-social-link"
+              className="brand-social-link brand-social-link--instagram"
               href="https://www.instagram.com/wear.noiryblanc?igsh=MXZ5OTVrbW41YWZ5Zw=="
               rel="noreferrer"
               target="_blank"
