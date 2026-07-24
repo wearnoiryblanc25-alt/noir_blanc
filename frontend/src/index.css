@@ -141,6 +141,49 @@ img {
   letter-spacing: 0.26em;
 }
 
+.brand-socials {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.brand-social-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(18, 17, 15, 0.1);
+  background: rgba(255, 255, 255, 0.46);
+  color: var(--ink-700);
+  font-size: 0.76rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease;
+}
+
+.brand-social-link:hover {
+  transform: translateY(-1px);
+  border-color: rgba(193, 167, 136, 0.52);
+  background: rgba(210, 183, 156, 0.14);
+  color: var(--ink-900);
+}
+
+.brand-social-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: currentColor;
+}
+
 .public-nav {
   display: flex;
   align-items: center;
@@ -2800,6 +2843,16 @@ img {
     line-height: 0.96;
   }
 
+  .brand-socials {
+    gap: 8px;
+  }
+
+  .brand-social-link {
+    padding: 6px 10px;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+  }
+
   .public-nav--actions .nav-pill {
     padding: 10px 14px;
   }
@@ -3020,6 +3073,16 @@ img {
   .brand-mark {
     font-size: clamp(1.7rem, 10.5vw, 2.35rem);
     letter-spacing: 0.07em;
+  }
+
+  .brand-socials {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .brand-social-link {
+    width: 100%;
+    justify-content: center;
   }
 
   .public-nav--actions {
