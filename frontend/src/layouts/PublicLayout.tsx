@@ -144,36 +144,41 @@ export const PublicLayout = () => {
 
   return (
     <div className="app-shell public-layout">
-      <header className="public-header">
+      <header
+        className={`public-header${
+          !isCatalogHomeView ? ' public-header--with-catalog' : ''
+        }`}
+      >
         <div className="brand-lockup">
           <NavLink className="brand-mark" to="/">
             NOIR&BLANC
           </NavLink>
           <span className="brand-subtitle">Collection</span>
-          <div className="brand-socials" aria-label="Redes sociales">
-            <a
-              className="brand-social-link brand-social-link--whatsapp"
-              href="https://wa.me/message/USYOWGBVWLSAH1"
-              rel="noreferrer"
-              target="_blank"
-            >
-              <span className="brand-social-icon">
-                <WhatsAppIcon />
-              </span>
-              <span>WhatsApp</span>
-            </a>
-            <a
-              className="brand-social-link brand-social-link--instagram"
-              href="https://www.instagram.com/wear.noiryblanc?igsh=MXZ5OTVrbW41YWZ5Zw=="
-              rel="noreferrer"
-              target="_blank"
-            >
-              <span className="brand-social-icon">
-                <InstagramIcon />
-              </span>
-              <span>Instagram</span>
-            </a>
-          </div>
+        </div>
+
+        <div className="brand-socials" aria-label="Redes sociales">
+          <a
+            className="brand-social-link brand-social-link--whatsapp"
+            href="https://wa.me/message/USYOWGBVWLSAH1"
+            rel="noreferrer"
+            target="_blank"
+          >
+            <span className="brand-social-icon">
+              <WhatsAppIcon />
+            </span>
+            <span>WhatsApp</span>
+          </a>
+          <a
+            className="brand-social-link brand-social-link--instagram"
+            href="https://www.instagram.com/wear.noiryblanc?igsh=MXZ5OTVrbW41YWZ5Zw=="
+            rel="noreferrer"
+            target="_blank"
+          >
+            <span className="brand-social-icon">
+              <InstagramIcon />
+            </span>
+            <span>Instagram</span>
+          </a>
         </div>
 
         <div className="public-header-center">
