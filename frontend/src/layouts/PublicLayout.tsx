@@ -96,7 +96,7 @@ export const PublicLayout = () => {
 
     const loadBrands = async () => {
       try {
-        const productos = await getProductos()
+        const productos = await getProductos({ activo: true })
 
         if (!active) {
           return
@@ -231,6 +231,7 @@ export const PublicLayout = () => {
                   })),
                 ]}
                 showMenuIcon
+                showSelectedText={false}
                 size="header"
                 value={selectedCategory}
               />

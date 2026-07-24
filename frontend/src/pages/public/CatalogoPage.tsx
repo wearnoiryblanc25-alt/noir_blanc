@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { getApiErrorMessage } from '../../api/api'
 import {
@@ -137,6 +137,7 @@ export const CatalogoPage = () => {
     searchParams.get('categoria') ?? ALL_PRODUCT_CATEGORIES_VALUE,
   )
   const selectedBrand = searchParams.get('marca')?.trim() ?? ''
+  const normalizedSelectedBrand = selectedBrand.trim().toLowerCase()
 
   useEffect(() => {
     let active = true
@@ -144,7 +145,7 @@ export const CatalogoPage = () => {
     const loadProductos = async () => {
       try {
         setLoading(true)
-        const response = await getProductos()
+        const response = await getProductos({ activo: true })
 
         if (active) {
           setProductos(response.filter((producto) => producto.activo))
@@ -173,34 +174,49 @@ export const CatalogoPage = () => {
     }
   }, [])
 
-  const filteredProducts = [...productos]
-    .filter((producto) => {
-      if (
-        selectedCategory !== ALL_PRODUCT_CATEGORIES_VALUE &&
-        !getProductoCategorias(producto).some(
-          (categoria) => normalizeProductCategory(categoria) === selectedCategory,
-        )
-      ) {
-        return false
-      }
+  const indexedProductos = useMemo(
+    () =>
+      productos.map((producto) => ({
+        producto,
+        categorias: getProductoCategorias(producto).map((categoria) =>
+          normalizeProductCategory(categoria),
+        ),
+        marcaNormalizada: producto.marca.trim().toLowerCase(),
+        searchableText: buildSearchableText(producto),
+      })),
+    [productos],
+  )
 
-      if (
-        selectedBrand &&
-        producto.marca.trim().toLowerCase() !== selectedBrand.trim().toLowerCase()
-      ) {
-        return false
-      }
+  const filteredProducts = useMemo(
+    () =>
+      indexedProductos
+        .filter(({ categorias, marcaNormalizada, searchableText }) => {
+          if (
+            selectedCategory !== ALL_PRODUCT_CATEGORIES_VALUE &&
+            !categorias.includes(selectedCategory)
+          ) {
+            return false
+          }
 
-      if (
-        deferredSearchTerm &&
-        !buildSearchableText(producto).includes(deferredSearchTerm)
-      ) {
-        return false
-      }
+          if (normalizedSelectedBrand && marcaNormalizada !== normalizedSelectedBrand) {
+            return false
+          }
 
-      return true
-    })
-    .sort((left, right) => right.id - left.id)
+          if (deferredSearchTerm && !searchableText.includes(deferredSearchTerm)) {
+            return false
+          }
+
+          return true
+        })
+        .map(({ producto }) => producto)
+        .sort((left, right) => right.id - left.id),
+    [
+      deferredSearchTerm,
+      indexedProductos,
+      normalizedSelectedBrand,
+      selectedCategory,
+    ],
+  )
 
   const hasActiveFilters =
     selectedCategory !== ALL_PRODUCT_CATEGORIES_VALUE ||

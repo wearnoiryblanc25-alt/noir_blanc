@@ -2907,6 +2907,8 @@ img {
     grid-area: center;
     grid-column: auto;
     min-width: 0;
+    justify-content: center;
+    justify-self: center;
   }
 
   .public-nav--actions {
@@ -2928,8 +2930,9 @@ img {
     align-items: start;
     justify-content: center;
     gap: 10px;
-    max-width: 100%;
+    max-width: min(100%, 720px);
     margin: 0 auto;
+    justify-self: center;
   }
 
   .public-header-dropdown,

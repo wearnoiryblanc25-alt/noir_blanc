@@ -87,6 +87,24 @@ const currencyFormatter = new Intl.NumberFormat('es-MX', {
   currency: 'MXN',
 })
 
+const PRODUCTOS_CACHE_TTL_MS = 30_000
+
+type ProductosCacheEntry = {
+  data: Producto[]
+  expiresAt: number
+}
+
+type ProductoByIdCacheEntry = {
+  data: Producto
+  expiresAt: number
+}
+
+const productosCache = new Map<string, ProductosCacheEntry>()
+const productosPendingRequests = new Map<string, Promise<Producto[]>>()
+const productoByIdCache = new Map<number, ProductoByIdCacheEntry>()
+const productoByIdPendingRequests = new Map<number, Promise<Producto>>()
+let productosCacheVersion = 0
+
 export const formatPrecio = (precio: number) => currencyFormatter.format(precio)
 
 const resolveImageUrl = (path: string | null | undefined) => {
@@ -125,6 +143,60 @@ const normalizePublicId = (value: string | null | undefined) => {
   const normalizedValue = value?.trim()
 
   return normalizedValue ? normalizedValue : null
+}
+
+const buildProductosCacheKey = (filters?: ProductoFilters) => {
+  if (!filters) {
+    return '__all__'
+  }
+
+  const normalizedEntries = Object.entries(filters)
+    .flatMap(([key, value]) => {
+      if (value === undefined || value === null) {
+        return []
+      }
+
+      if (typeof value === 'string') {
+        const trimmedValue = value.trim()
+
+        return trimmedValue ? [[key, trimmedValue] as const] : []
+      }
+
+      return [[key, value] as const]
+    })
+    .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+
+  if (normalizedEntries.length === 0) {
+    return '__all__'
+  }
+
+  return JSON.stringify(normalizedEntries)
+}
+
+const isFreshCacheEntry = (expiresAt: number) => expiresAt > Date.now()
+
+const cacheProductoById = (producto: Producto) => {
+  productoByIdCache.set(producto.id, {
+    data: producto,
+    expiresAt: Date.now() + PRODUCTOS_CACHE_TTL_MS,
+  })
+}
+
+const cacheProductosList = (key: string, productos: Producto[]) => {
+  productosCache.set(key, {
+    data: productos,
+    expiresAt: Date.now() + PRODUCTOS_CACHE_TTL_MS,
+  })
+
+  productos.forEach(cacheProductoById)
+}
+
+export const clearProductosCache = () => {
+  productosCacheVersion += 1
+  productosCache.clear()
+  productosPendingRequests.clear()
+  productoByIdCache.clear()
+  productoByIdPendingRequests.clear()
 }
 
 const normalizeProductoImageMetadata = (
@@ -215,21 +287,88 @@ const normalizeProducto = (producto: Producto): Producto => {
 }
 
 export const getProductos = async (filters?: ProductoFilters) => {
-  const { data } = await api.get<Producto[]>('/productos', {
-    params: filters,
-  })
+  const cacheKey = buildProductosCacheKey(filters)
+  const cachedEntry = productosCache.get(cacheKey)
 
-  return data.map(normalizeProducto)
+  if (cachedEntry && isFreshCacheEntry(cachedEntry.expiresAt)) {
+    return cachedEntry.data
+  }
+
+  if (cachedEntry) {
+    productosCache.delete(cacheKey)
+  }
+
+  const pendingRequest = productosPendingRequests.get(cacheKey)
+
+  if (pendingRequest) {
+    return pendingRequest
+  }
+
+  const requestVersion = productosCacheVersion
+  const request = api
+    .get<Producto[]>('/productos', {
+      params: filters,
+    })
+    .then(({ data }) => {
+      const normalizedProductos = data.map(normalizeProducto)
+
+      if (requestVersion === productosCacheVersion) {
+        cacheProductosList(cacheKey, normalizedProductos)
+      }
+
+      return normalizedProductos
+    })
+    .finally(() => {
+      productosPendingRequests.delete(cacheKey)
+    })
+
+  productosPendingRequests.set(cacheKey, request)
+
+  return request
 }
 
 export const getProductoById = async (id: number) => {
-  const { data } = await api.get<Producto>(`/productos/${id}`)
+  const cachedEntry = productoByIdCache.get(id)
 
-  return normalizeProducto(data)
+  if (cachedEntry && isFreshCacheEntry(cachedEntry.expiresAt)) {
+    return cachedEntry.data
+  }
+
+  if (cachedEntry) {
+    productoByIdCache.delete(id)
+  }
+
+  const pendingRequest = productoByIdPendingRequests.get(id)
+
+  if (pendingRequest) {
+    return pendingRequest
+  }
+
+  const requestVersion = productosCacheVersion
+  const request = api
+    .get<Producto>(`/productos/${id}`)
+    .then(({ data }) => {
+      const normalizedProducto = normalizeProducto(data)
+
+      if (requestVersion === productosCacheVersion) {
+        cacheProductoById(normalizedProducto)
+      }
+
+      return normalizedProducto
+    })
+    .finally(() => {
+      productoByIdPendingRequests.delete(id)
+    })
+
+  productoByIdPendingRequests.set(id, request)
+
+  return request
 }
 
 export const createProducto = async (payload: ProductoPayload) => {
   const { data } = await api.post<Producto>('/productos', payload)
+
+  clearProductosCache()
 
   return normalizeProducto(data)
 }
@@ -307,9 +446,12 @@ export const updateProducto = async (
 ) => {
   const { data } = await api.patch<Producto>(`/productos/${id}`, payload)
 
+  clearProductosCache()
+
   return normalizeProducto(data)
 }
 
 export const deleteProducto = async (id: number) => {
   await api.delete(`/productos/${id}`)
+  clearProductosCache()
 }
