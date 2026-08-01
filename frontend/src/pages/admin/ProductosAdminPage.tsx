@@ -30,6 +30,10 @@ import {
   type ProductoPayload,
   type UploadedProductoImage,
 } from '../../services/productos.service'
+import {
+  normalizeProductColorKey,
+  resolveDefaultProductColorHex,
+} from '../../utils/productColor'
 
 interface ProductoImagenColorFormState {
   imagen: string
@@ -119,53 +123,6 @@ const suggestedProductColors = [
   'Rojo',
 ]
 
-const resolveDefaultColorHex = (color: string) => {
-  const normalizedColor = color.trim().toLowerCase()
-
-  if (normalizedColor.includes('negro') || normalizedColor.includes('black')) {
-    return '#181614'
-  }
-
-  if (
-    normalizedColor.includes('blanco') ||
-    normalizedColor.includes('white') ||
-    normalizedColor.includes('marfil') ||
-    normalizedColor.includes('ivory')
-  ) {
-    return '#efe5d7'
-  }
-
-  if (normalizedColor.includes('beige') || normalizedColor.includes('camel')) {
-    return '#c7ab8d'
-  }
-
-  if (normalizedColor.includes('cafe') || normalizedColor.includes('brown')) {
-    return '#86654b'
-  }
-
-  if (normalizedColor.includes('gris') || normalizedColor.includes('gray')) {
-    return '#a1a09c'
-  }
-
-  if (normalizedColor.includes('verde') || normalizedColor.includes('green')) {
-    return '#8a9477'
-  }
-
-  if (normalizedColor.includes('azul') || normalizedColor.includes('blue')) {
-    return '#6c7a92'
-  }
-
-  if (normalizedColor.includes('rosa') || normalizedColor.includes('pink')) {
-    return '#d79bb2'
-  }
-
-  if (normalizedColor.includes('rojo') || normalizedColor.includes('red')) {
-    return '#995e58'
-  }
-
-  return '#d2c8bc'
-}
-
 const createEmptyFormState = (): ProductoFormState => ({
   nombre: '',
   descripcion: '',
@@ -195,6 +152,26 @@ const parseList = (value: string) =>
     .split(/[\n,]/)
     .map((item) => item.trim())
     .filter(Boolean)
+
+const parseChoiceList = (value: string) => {
+  const uniqueValues = new Map<string, string>()
+
+  value
+    .split(/[\n,;]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .forEach((item) => {
+      const normalizedKey = normalizeProductColorKey(item)
+
+      if (!normalizedKey || uniqueValues.has(normalizedKey)) {
+        return
+      }
+
+      uniqueValues.set(normalizedKey, item)
+    })
+
+  return Array.from(uniqueValues.values())
+}
 
 const serializeList = (items: string[]) => items.join('\n')
 
@@ -271,12 +248,13 @@ const buildUniqueColorPalette = (
       return
     }
 
-    const normalizedKey = normalizedName.toLowerCase()
+    const normalizedKey = normalizeProductColorKey(normalizedName)
 
     if (!uniqueValues.has(normalizedKey)) {
       uniqueValues.set(normalizedKey, {
         nombre: normalizedName,
-        colorHex: item?.colorHex?.trim() || resolveDefaultColorHex(normalizedName),
+        colorHex:
+          item?.colorHex?.trim() || resolveDefaultProductColorHex(normalizedName),
       })
     }
   })
@@ -398,17 +376,17 @@ const findColorHex = (
   palette: ProductoColorFormState[],
   colorName?: string | null,
 ) => {
-  const normalizedName = colorName?.trim().toLowerCase() ?? ''
+  const normalizedName = normalizeProductColorKey(colorName)
 
   if (!normalizedName) {
     return null
   }
 
   const match = palette.find(
-    (item) => item.nombre.trim().toLowerCase() === normalizedName,
+    (item) => normalizeProductColorKey(item.nombre) === normalizedName,
   )
 
-  return match?.colorHex ?? resolveDefaultColorHex(colorName ?? '')
+  return match?.colorHex ?? resolveDefaultProductColorHex(colorName ?? '')
 }
 
 const upsertPaletteColor = (
@@ -421,11 +399,11 @@ const upsertPaletteColor = (
     return buildUniqueColorPalette(palette)
   }
 
-  const normalizedKey = normalizedName.toLowerCase()
+  const normalizedKey = normalizeProductColorKey(normalizedName)
   let didUpdate = false
 
   const nextPalette = palette.map((item) => {
-    if (item.nombre.trim().toLowerCase() !== normalizedKey) {
+    if (normalizeProductColorKey(item.nombre) !== normalizedKey) {
       return item
     }
 
@@ -433,14 +411,16 @@ const upsertPaletteColor = (
 
     return {
       nombre: normalizedName,
-      colorHex: payload.colorHex.trim() || resolveDefaultColorHex(normalizedName),
+      colorHex:
+        payload.colorHex.trim() || resolveDefaultProductColorHex(normalizedName),
     }
   })
 
   if (!didUpdate) {
     nextPalette.push({
       nombre: normalizedName,
-      colorHex: payload.colorHex.trim() || resolveDefaultColorHex(normalizedName),
+      colorHex:
+        payload.colorHex.trim() || resolveDefaultProductColorHex(normalizedName),
     })
   }
 
@@ -451,10 +431,10 @@ const removePaletteColor = (
   palette: ProductoColorFormState[],
   colorName: string,
 ) => {
-  const normalizedName = colorName.trim().toLowerCase()
+  const normalizedName = normalizeProductColorKey(colorName)
 
   return palette.filter(
-    (item) => item.nombre.trim().toLowerCase() !== normalizedName,
+    (item) => normalizeProductColorKey(item.nombre) !== normalizedName,
   )
 }
 
@@ -530,7 +510,9 @@ const buildImageColorFormState = (
     return {
       imagen,
       color: currentAssignment?.color?.trim() ?? '',
-      colorHex: currentAssignment?.colorHex?.trim() ?? '#d2c8bc',
+      colorHex:
+        currentAssignment?.colorHex?.trim() ||
+        resolveDefaultProductColorHex(currentAssignment?.color ?? ''),
     }
   })
 
@@ -547,13 +529,14 @@ const buildPaletteFromProducto = (producto: Producto) =>
       nombre: color,
       colorHex:
         producto.imagenesPorColor.find(
-          (item) => item.color?.trim().toLowerCase() === color.trim().toLowerCase(),
+          (item) =>
+            normalizeProductColorKey(item.color) === normalizeProductColorKey(color),
         )?.colorHex ??
-        (producto.imagenPrincipalColor?.trim().toLowerCase() ===
-        color.trim().toLowerCase()
+        (normalizeProductColorKey(producto.imagenPrincipalColor) ===
+        normalizeProductColorKey(color)
           ? producto.imagenPrincipalColorHex
           : null) ??
-        resolveDefaultColorHex(color),
+        resolveDefaultProductColorHex(color),
     })),
     ...(producto.imagenPrincipalColor?.trim()
       ? [
@@ -561,7 +544,7 @@ const buildPaletteFromProducto = (producto: Producto) =>
             nombre: producto.imagenPrincipalColor,
             colorHex:
               producto.imagenPrincipalColorHex ??
-              resolveDefaultColorHex(producto.imagenPrincipalColor),
+              resolveDefaultProductColorHex(producto.imagenPrincipalColor),
           },
         ]
       : []),
@@ -569,7 +552,7 @@ const buildPaletteFromProducto = (producto: Producto) =>
       .filter((item) => item.color?.trim())
       .map((item) => ({
         nombre: item.color ?? '',
-        colorHex: item.colorHex ?? resolveDefaultColorHex(item.color ?? ''),
+        colorHex: item.colorHex ?? resolveDefaultProductColorHex(item.color ?? ''),
       })),
   ])
 
@@ -1009,24 +992,32 @@ const ChoiceAddField = ({
 }) => {
   const [draftValue, setDraftValue] = useState('')
   const [draftColorHex, setDraftColorHex] = useState('#d2c8bc')
+  const [draftColorHexTouched, setDraftColorHexTouched] = useState(false)
   const listId = useId()
   const selectedLookup = new Set(
-    selectedValues.map((value) => value.nombre.trim().toLowerCase()),
+    selectedValues.map((value) => normalizeProductColorKey(value.nombre)),
   )
 
   const commitValue = () => {
-    const normalizedValue = draftValue.trim()
+    const nextValues = parseChoiceList(draftValue)
 
-    if (!normalizedValue) {
+    if (nextValues.length === 0) {
       return
     }
 
-    onAdd({
-      nombre: normalizedValue,
-      colorHex: draftColorHex,
+    nextValues.forEach((value) => {
+      onAdd({
+        nombre: value,
+        colorHex:
+          nextValues.length === 1 && draftColorHexTouched
+            ? draftColorHex
+            : resolveDefaultProductColorHex(value),
+      })
     })
+
     setDraftValue('')
     setDraftColorHex('#d2c8bc')
+    setDraftColorHexTouched(false)
   }
 
   return (
@@ -1089,7 +1080,10 @@ const ChoiceAddField = ({
       {suggestions.length > 0 ? (
         <div className="choice-add-suggestions">
           {suggestions
-            .filter((suggestion) => !selectedLookup.has(suggestion.toLowerCase()))
+            .filter(
+              (suggestion) =>
+                !selectedLookup.has(normalizeProductColorKey(suggestion)),
+            )
             .map((suggestion) => (
               <button
                 className="choice-pill"
@@ -1097,7 +1091,7 @@ const ChoiceAddField = ({
                 onClick={() =>
                   onAdd({
                     nombre: suggestion,
-                    colorHex: resolveDefaultColorHex(suggestion),
+                    colorHex: resolveDefaultProductColorHex(suggestion),
                   })
                 }
                 type="button"
@@ -1112,14 +1106,31 @@ const ChoiceAddField = ({
         <input
           aria-label="Color visual del tono"
           className="choice-add-picker"
-          onChange={(event) => setDraftColorHex(event.target.value)}
+          onChange={(event) => {
+            setDraftColorHex(event.target.value)
+            setDraftColorHexTouched(true)
+          }}
           type="color"
           value={draftColorHex}
         />
         <input
           className="text-input"
           list={suggestions.length > 0 ? listId : undefined}
-          onChange={(event) => setDraftValue(event.target.value)}
+          onChange={(event) => {
+            const nextValue = event.target.value
+
+            setDraftValue(nextValue)
+
+            if (!draftColorHexTouched) {
+              const nextValues = parseChoiceList(nextValue)
+
+              setDraftColorHex(
+                nextValues.length === 1
+                  ? resolveDefaultProductColorHex(nextValues[0])
+                  : '#d2c8bc',
+              )
+            }
+          }}
           onKeyDown={(event) => {
             if (event.key !== 'Enter') {
               return
@@ -1128,7 +1139,7 @@ const ChoiceAddField = ({
             event.preventDefault()
             commitValue()
           }}
-          placeholder="Escribe un color y agregalo"
+          placeholder="Escribe colores separados por coma o Enter"
           type="text"
           value={draftValue}
         />

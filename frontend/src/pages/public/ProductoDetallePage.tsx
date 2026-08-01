@@ -7,6 +7,10 @@ import {
   getProductoById,
   type Producto,
 } from '../../services/productos.service'
+import {
+  normalizeProductColorKey,
+  resolveDefaultProductColorHex,
+} from '../../utils/productColor'
 
 interface ProductoColorVariant {
   key: string
@@ -14,10 +18,11 @@ interface ProductoColorVariant {
   colorHex: string
 }
 
-const normalizeColorKey = (value?: string | null) => value?.trim().toLowerCase() ?? ''
-
 const buildVariantKey = (label?: string | null, colorHex?: string | null) =>
-  `${normalizeColorKey(label)}|${(colorHex ?? '').trim().toLowerCase()}`
+  `${normalizeProductColorKey(label)}|${(colorHex ?? '').trim().toLowerCase()}`
+
+const buildUniqueGalleryImages = (items: Array<string | null | undefined>) =>
+  Array.from(new Set(items.map((item) => item?.trim() ?? '').filter(Boolean)))
 
 const getProductoCategorias = (producto: Producto) =>
   producto.categorias.length > 0
@@ -50,6 +55,10 @@ const buildColorVariants = (producto: Producto | null): ProductoColorVariant[] =
     registerVariant(producto.imagenPrincipalColor, producto.imagenPrincipalColorHex)
   }
 
+  producto.colores.forEach((color) => {
+    registerVariant(color, resolveDefaultProductColorHex(color))
+  })
+
   producto.imagenesPorColor.forEach((image) => {
     if (image.color || image.colorHex) {
       registerVariant(image.color, image.colorHex)
@@ -67,40 +76,48 @@ const buildGaleria = (
     return []
   }
 
-  const hasColorRelations =
-    Boolean(producto.imagenPrincipalColor?.trim()) ||
-    Boolean(producto.imagenPrincipalColorHex?.trim()) ||
-    producto.imagenesPorColor.length > 0
   const matchesSelectedVariant = (
     label?: string | null,
     colorHex?: string | null,
   ) =>
     !selectedVariantKey ||
     buildVariantKey(label, colorHex) === selectedVariantKey
+  const baseGallery = buildUniqueGalleryImages([
+    producto.imagenPrincipal,
+    ...producto.imagenes,
+    ...producto.imagenesPorColor.map((image) => image.imagen),
+  ])
 
-  const galleryImages: string[] = []
+  if (!selectedVariantKey) {
+    return baseGallery
+  }
 
-  if (
-    producto.imagenPrincipal &&
+  const assignedImageLookup = new Set(
+    producto.imagenesPorColor.map((image) => image.imagen.trim().toLowerCase()),
+  )
+  const genericImages = buildUniqueGalleryImages([
+    !producto.imagenPrincipalColor?.trim() ? producto.imagenPrincipal : null,
+    ...producto.imagenes.filter(
+      (image) => !assignedImageLookup.has(image.trim().toLowerCase()),
+    ),
+  ])
+  const variantGallery = buildUniqueGalleryImages([
     matchesSelectedVariant(
       producto.imagenPrincipalColor,
       producto.imagenPrincipalColorHex,
     )
-  ) {
-    galleryImages.push(producto.imagenPrincipal)
+      ? producto.imagenPrincipal
+      : null,
+    ...producto.imagenesPorColor
+      .filter((image) => matchesSelectedVariant(image.color, image.colorHex))
+      .map((image) => image.imagen),
+  ])
+
+  if (variantGallery.length === 0) {
+    return baseGallery
   }
 
-  if (hasColorRelations) {
-    galleryImages.push(
-      ...producto.imagenesPorColor
-        .filter((image) => matchesSelectedVariant(image.color, image.colorHex))
-        .map((image) => image.imagen),
-    )
-  } else {
-    galleryImages.push(...producto.imagenes)
-  }
-
-  return Array.from(new Set(galleryImages.filter(Boolean)))
+  return buildUniqueGalleryImages([...variantGallery, ...genericImages])
 }
 
 export const ProductoDetallePage = () => {

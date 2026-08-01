@@ -1331,7 +1331,7 @@ img {
 
 .detail-grid {
   display: grid;
-  grid-template-columns: minmax(420px, 660px) minmax(280px, 400px);
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
   grid-template-areas:
     'media panel'
     'rails .';
@@ -1400,7 +1400,7 @@ img {
   width: 100%;
   max-width: 460px;
   justify-self: center;
-  align-self: center;
+  align-self: start;
 }
 
 .detail-id-copy {

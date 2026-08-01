@@ -21,6 +21,27 @@ CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 ```
 
+Variables base del backend:
+
+```bash
+PORT=3000
+DB_HOST=
+DB_PORT=
+DB_USERNAME=
+DB_PASSWORD=
+DB_DATABASE=
+FRONTEND_URL=
+JWT_SECRET=
+JWT_EXPIRES_IN=1d
+NODE_ENV=development
+```
+
+Variable del frontend:
+
+```bash
+VITE_API_URL=http://localhost:3000
+```
+
 ## Desarrollo local
 
 1. Instala dependencias:
@@ -32,16 +53,18 @@ cd ../frontend
 npm install
 ```
 
-2. Agrega las credenciales de Cloudinary en `backend/.env`.
+2. Crea `backend/.env.dev` usando `backend/.env.example` como base y agrega ahi las credenciales de Cloudinary y PostgreSQL local.
 
-3. Ejecuta la migracion:
+3. Crea `frontend/.env` usando `frontend/.env.example` como base.
+
+4. Ejecuta la migracion:
 
 ```bash
 cd backend
 npm run migration:run
 ```
 
-4. Levanta backend y frontend:
+5. Levanta backend y frontend:
 
 ```bash
 cd backend
@@ -53,7 +76,7 @@ cd frontend
 npm run dev
 ```
 
-5. Verifica:
+6. Verifica:
 
 - las nuevas imagenes aparecen en la carpeta `noir-blanc/productos` de Cloudinary;
 - PostgreSQL guarda la URL segura y el `public_id`;
@@ -64,11 +87,26 @@ npm run dev
 
 En el servicio del backend agrega:
 
+- `DB_HOST`
+- `DB_PORT`
+- `DB_USERNAME`
+- `DB_PASSWORD`
+- `DB_DATABASE`
 - `CLOUDINARY_CLOUD_NAME`
 - `CLOUDINARY_API_KEY`
 - `CLOUDINARY_API_SECRET`
+- `FRONTEND_URL`
+- `JWT_SECRET`
+- `JWT_EXPIRES_IN`
+- `NODE_ENV=production`
 
 No configures estas variables en el frontend ni con prefijo `VITE_`.
+
+En el servicio del frontend agrega:
+
+- `VITE_API_URL`
+
+Si el frontend y el backend comparten el mismo dominio publico en Railway, el frontend ya puede caer por defecto al `window.location.origin` cuando `VITE_API_URL` no este definido. Aun asi, dejar `VITE_API_URL` explicita evita errores en builds y previews.
 
 Antes de arrancar la version nueva, ejecuta la migracion del backend:
 

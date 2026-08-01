@@ -7,20 +7,35 @@ import {
   resolveEnvironment,
 } from '../config/env.configuration';
 
+const missingDatabasePasswordMessage =
+  'Falta DB_PASSWORD. Configura la contraseña de Postgres en .env.dev, .env.development o .env antes de iniciar el backend.';
+
+const assertDatabaseConfiguration = (
+  databaseConfig: DatabaseEnvironment,
+): void => {
+  if (databaseConfig.password.trim().length === 0) {
+    throw new Error(missingDatabasePasswordMessage);
+  }
+};
+
 const buildDataSourceOptions = (
   databaseConfig: DatabaseEnvironment,
-): DataSourceOptions => ({
-  type: 'postgres',
-  host: databaseConfig.host,
-  port: databaseConfig.port,
-  username: databaseConfig.username,
-  password: databaseConfig.password,
-  database: databaseConfig.database,
-  synchronize: false,
-  migrationsRun: true,
-  entities: [join(__dirname, '..', 'modules', '**', '*.entity.{ts,js}')],
-  migrations: [join(__dirname, 'migrations', '*.{ts,js}')],
-});
+): DataSourceOptions => {
+  assertDatabaseConfiguration(databaseConfig);
+
+  return {
+    type: 'postgres',
+    host: databaseConfig.host,
+    port: databaseConfig.port,
+    username: databaseConfig.username,
+    password: databaseConfig.password,
+    database: databaseConfig.database,
+    synchronize: false,
+    migrationsRun: true,
+    entities: [join(__dirname, '..', 'modules', '**', '*.entity.{ts,js}')],
+    migrations: [join(__dirname, 'migrations', '*.{ts,js}')],
+  };
+};
 
 export const getTypeOrmModuleOptions = (
   configService: ConfigService,

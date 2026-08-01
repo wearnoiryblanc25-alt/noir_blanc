@@ -28,16 +28,21 @@ async function bootstrap() {
     }),
   );
 
-  const allowedOrigins = [
-    frontendUrl,
-    'http://localhost:5173',
-    'http://localhost:4200',
-    'http://127.0.0.1:4200',
-    'http://localhost:3000',
-    'https://noirandblanc.up.railway.app',
-  ]
-    .filter(Boolean)
-    .map((url) => url.replace(/\/$/, ''));
+  const allowedOrigins = Array.from(
+    new Set(
+      [
+        frontendUrl,
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'http://localhost:4200',
+        'http://127.0.0.1:4200',
+        'http://localhost:3000',
+        'https://noirandblanc.up.railway.app',
+      ]
+        .filter(Boolean)
+        .map((url) => url.replace(/\/$/, '')),
+    ),
+  );
 
   app.enableCors({
     origin: (origin, callback) => {

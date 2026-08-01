@@ -16,12 +16,26 @@ const normalizeApiUrl = (value: string) => {
   return normalizedValue
 }
 
+const resolveRuntimeApiUrl = () => {
+  if (!isBrowser()) {
+    return ''
+  }
+
+  const { hostname, origin } = window.location
+
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return ''
+  }
+
+  return origin
+}
+
 const rawApiUrl =
   typeof import.meta.env.VITE_API_URL === 'string'
     ? normalizeApiUrl(import.meta.env.VITE_API_URL)
     : ''
 
-export const API_URL = rawApiUrl || 'http://localhost:3000'
+export const API_URL = rawApiUrl || resolveRuntimeApiUrl() || 'http://localhost:3000'
 export const AUTH_TOKEN_STORAGE_KEY = 'noir-blanc.auth.token'
 const AUTH_USER_STORAGE_KEY = 'noir-blanc.auth.user'
 

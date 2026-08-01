@@ -24,15 +24,31 @@ describe('product-image-upload.utils', () => {
     expect(() => validateProductImageFile(buildFile())).not.toThrow();
   });
 
-  it('acepta lotes de imagenes sin aplicar validaciones adicionales', () => {
+  it('rechaza formatos no compatibles', () => {
     expect(() =>
-      validateProductImageFiles([
-        buildFile(),
+      validateProductImageFile(
         buildFile({
           mimetype: 'image/gif',
-          size: 8_000_000,
         }),
-      ]),
-    ).not.toThrow();
+      ),
+    ).toThrow('Solo se permiten imagenes JPG, PNG, WEBP o AVIF.');
+  });
+
+  it('rechaza archivos mayores a 8 MB', () => {
+    expect(() =>
+      validateProductImageFile(
+        buildFile({
+          size: 8 * 1024 * 1024 + 1,
+        }),
+      ),
+    ).toThrow('Cada imagen debe pesar como maximo 8 MB.');
+  });
+
+  it('rechaza lotes mayores a 20 imagenes', () => {
+    expect(() =>
+      validateProductImageFiles(
+        Array.from({ length: 21 }, () => buildFile()),
+      ),
+    ).toThrow('Puedes subir un maximo de 20 imagenes por solicitud.');
   });
 });

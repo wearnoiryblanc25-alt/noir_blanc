@@ -6,7 +6,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary, type UploadApiResponse } from 'cloudinary';
-import { getCloudinaryEnvironment } from '../../config/cloudinary.config';
+import {
+  getCloudinaryEnvironment,
+  getMissingCloudinaryCredentialMessage,
+} from '../../config/cloudinary.config';
 
 export interface CloudinaryUploadedImage {
   secureUrl: string;
@@ -20,24 +23,42 @@ export interface CloudinaryUploadedImage {
 @Injectable()
 export class CloudinaryService {
   private readonly logger = new Logger(CloudinaryService.name);
+  private readonly isConfigured: boolean;
 
   constructor(private readonly configService: ConfigService) {
-    const { apiKey, apiSecret, cloudName } = getCloudinaryEnvironment(
-      this.configService,
-    );
+    const credentials = getCloudinaryEnvironment(this.configService);
 
+    if (!credentials) {
+      this.isConfigured = false;
+      this.logger.warn(
+        `${getMissingCloudinaryCredentialMessage()} Las cargas de imagen quedaran deshabilitadas hasta configurar esas variables.`,
+      );
+      return;
+    }
+
+    this.isConfigured = true;
     cloudinary.config({
-      cloud_name: cloudName,
-      api_key: apiKey,
-      api_secret: apiSecret,
+      cloud_name: credentials.cloudName,
+      api_key: credentials.apiKey,
+      api_secret: credentials.apiSecret,
       secure: true,
     });
+  }
+
+  private ensureConfigured(): void {
+    if (!this.isConfigured) {
+      throw new InternalServerErrorException(
+        'Cloudinary no esta configurado correctamente en el backend.',
+      );
+    }
   }
 
   async uploadImage(
     file: Express.Multer.File,
     folder = 'noir-blanc/productos',
   ): Promise<CloudinaryUploadedImage> {
+    this.ensureConfigured();
+
     if (!file?.buffer?.length) {
       throw new BadRequestException(
         'No se recibio el contenido de la imagen en el servidor.',
@@ -92,6 +113,8 @@ export class CloudinaryService {
   }
 
   async deleteImage(publicId: string): Promise<void> {
+    this.ensureConfigured();
+
     try {
       const destroyResponse: unknown =
         await cloudinary.uploader.destroy(publicId);

@@ -10,6 +10,7 @@ import {
   getProductos,
   type Producto,
 } from '../../services/productos.service'
+import { resolveDefaultProductColorHex } from '../../utils/productColor'
 
 const buildSearchableText = (producto: Producto) =>
   [
@@ -19,6 +20,8 @@ const buildSearchableText = (producto: Producto) =>
     ...producto.categorias,
     producto.marca,
     ...producto.colores,
+    producto.imagenPrincipalColor ?? '',
+    ...producto.imagenesPorColor.map((image) => image.color ?? ''),
     ...producto.tallas,
   ]
     .join(' ')
@@ -30,49 +33,6 @@ const getProductoCategorias = (producto: Producto) =>
     : producto.categoria.trim()
       ? [producto.categoria]
       : []
-
-const resolveColorSwatch = (color: string) => {
-  const normalizedColor = color.trim().toLowerCase()
-
-  if (normalizedColor.includes('negro') || normalizedColor.includes('black')) {
-    return '#181614'
-  }
-
-  if (
-    normalizedColor.includes('blanco') ||
-    normalizedColor.includes('white') ||
-    normalizedColor.includes('marfil') ||
-    normalizedColor.includes('ivory')
-  ) {
-    return '#efe5d7'
-  }
-
-  if (normalizedColor.includes('beige') || normalizedColor.includes('camel')) {
-    return '#c7ab8d'
-  }
-
-  if (normalizedColor.includes('cafe') || normalizedColor.includes('brown')) {
-    return '#86654b'
-  }
-
-  if (normalizedColor.includes('gris') || normalizedColor.includes('gray')) {
-    return '#a1a09c'
-  }
-
-  if (normalizedColor.includes('verde') || normalizedColor.includes('green')) {
-    return '#8a9477'
-  }
-
-  if (normalizedColor.includes('azul') || normalizedColor.includes('blue')) {
-    return '#6c7a92'
-  }
-
-  if (normalizedColor.includes('rojo') || normalizedColor.includes('red')) {
-    return '#995e58'
-  }
-
-  return '#d2c8bc'
-}
 
 const ProductMedia = ({
   alt,
@@ -114,7 +74,7 @@ const CatalogColorDots = ({ colors }: { colors: string[] }) => {
           <span
             className="color-dot"
             key={`${color}-${index}`}
-            style={{ backgroundColor: resolveColorSwatch(color) }}
+            style={{ backgroundColor: resolveDefaultProductColorHex(color) }}
             title={color}
           />
         ))}

@@ -17,7 +17,7 @@ const normalizeCredential = (value: string | undefined): string | null => {
 
 export const getCloudinaryEnvironment = (
   configService: ConfigService,
-): CloudinaryEnvironment => {
+): CloudinaryEnvironment | null => {
   const cloudName = normalizeCredential(
     configService.get<string>('CLOUDINARY_CLOUD_NAME'),
   );
@@ -29,7 +29,7 @@ export const getCloudinaryEnvironment = (
   );
 
   if (!cloudName || !apiKey || !apiSecret) {
-    throw new Error(missingCloudinaryCredentialMessage);
+    return null;
   }
 
   return {
